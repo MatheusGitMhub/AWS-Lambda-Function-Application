@@ -1,0 +1,9 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "Reporte-Abastecimiento"
+s3_bucket = "sam-deploy-bucket-cosmos"
+s3_prefix = "reporte_diario_abastecimiento"
+region = "us-east-1"
+capabilities = "CAPABILITY_NAMED_IAM"

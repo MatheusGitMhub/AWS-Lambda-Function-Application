@@ -1,0 +1,64 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Reporte Diario Abastecimiento
+
+Globals:
+  Function:
+    MemorySize: 1024
+    Timeout: 900
+Resources:
+# IAM Role -
+  LambdaRoleForExcecution:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub ${AWS::StackName}-Role-ReporteAbastecimiento
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Action: 'sts:AssumeRole'
+            Principal:
+              Service: lambda.amazonaws.com
+      Policies:
+        - PolicyName: Reporte-Abastecimiento
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+        - PolicyName: AllAccessOnS3Orpak
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action: 's3:*'
+                Resource: '*'
+
+  Procesamiento:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: !Sub ${AWS::StackName}-Diario
+      CodeUri: reporte/
+      Handler: reporte_diario.reporte_lambda
+      Layers:
+        - arn:aws:lambda:us-east-1:016572979516:layer:awswrangler:1
+      Runtime: python3.7
+      Role: !GetAtt LambdaRoleForExcecution.Arn
+      Events:
+        EjecutarProcesamiento:
+          Type: Schedule
+          Properties:
+            Schedule: cron(0 19 * * ? *)
+          Metadata:
+            StackeryName: todos los dias a las 19 hrs
+Outputs:
+  FuncionReporteAbastecimiento:
+    Description: "Lambda reporte de Abastecimiento"
+    Value: !GetAtt Procesamiento.Arn
+    Export:
+        Name: !Sub "${AWS::StackName}-FuncionReporteAbastecimiento"

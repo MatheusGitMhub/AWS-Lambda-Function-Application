@@ -1,0 +1,71 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: 'Reporte Diario Abastecimiento
+
+  '
+Globals:
+  Function:
+    MemorySize: 1024
+    Timeout: 900
+Resources:
+  LambdaRoleForExcecution:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: ${AWS::StackName}-Role-ReporteAbastecimiento
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: sts:AssumeRole
+          Principal:
+            Service: lambda.amazonaws.com
+      Policies:
+      - PolicyName: Reporte-Abastecimiento
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+            Resource: arn:aws:logs:*:*:*
+      - PolicyName: AllAccessOnS3Orpak
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action: s3:*
+            Resource: '*'
+  Procesamiento:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName:
+        Fn::Sub: ${AWS::StackName}-Diario
+      CodeUri: s3://tesseracto-lambda-bucket/5479c9b0951252616a5dda4a9424e147
+      Handler: reporte_diario_abastecimiento.reporte_abastecimiento_combustible
+      Layers:
+      - arn:aws:lambda:us-east-1:016572979516:layer:awswrangler:1
+      Runtime: python3.7
+      Role:
+        Fn::GetAtt:
+        - LambdaRoleForExcecution
+        - Arn
+      Events:
+        EjecutarProcesamiento:
+          Type: Schedule
+          Properties:
+            Schedule: cron(59 23 * * ? *)
+          Metadata:
+            StackeryName: todos los dias en la noche
+Outputs:
+  FuncionReporteAbastecimiento:
+    Description: Lambda reporte de Abastecimiento
+    Value:
+      Fn::GetAtt:
+      - Procesamiento
+      - Arn
+    Export:
+      Name:
+        Fn::Sub: ${AWS::StackName}-FuncionReporteAbastecimiento
